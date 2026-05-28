@@ -5,7 +5,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Statement;
+
+import the.last.commit.models.Hero;
 
 public class DatabaseConnection {
 
@@ -121,6 +125,42 @@ public class DatabaseConnection {
 
         } catch (Exception e) {
             throw new RuntimeException("Error Kritis: Gagal membuat skema database", e);
+        }
+    }
+
+    public static void saveHeroProgress(Hero hero) {
+        String updateProgress = "UPDATE game_progress SET level = ?, exp = ?, gold = ?, upgrade_points = ?, highest_wave = ? WHERE progress_id = ?";
+        String updateStats = "UPDATE hero_stats SET base_hp = ?, base_mana_energy = ?, base_defense = ?, base_atk = ?, base_skill = ?, base_ult = ? WHERE progress_id = ?";
+
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement psProg = conn.prepareStatement(updateProgress);
+                PreparedStatement psStats = conn.prepareStatement(updateStats)) {
+                
+                psProg.setInt(1, hero.getLevel());
+                psProg.setInt(2, hero.getExp());
+                psProg.setInt(3, hero.getGold());
+                psProg.setInt(4, hero.getUpgradePoints());
+                psProg.setInt(5, hero.getHighestWave());
+                psProg.setInt(6, hero.getProgressId());
+                psProg.executeUpdate();
+
+                psStats.setInt(1, hero.getMaxHp());
+                psStats.setInt(2, hero.getMaxResource());
+                psStats.setInt(3, hero.getDefense());
+                psStats.setInt(4, hero.getBasicAtk());
+                psStats.setInt(5, hero.getSkillAtk());
+                psStats.setInt(6, hero.getUltAtk());
+                psStats.setInt(7, hero.getProgressId());
+                psStats.executeUpdate();
+
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                e.printStackTrace();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 }
