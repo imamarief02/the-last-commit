@@ -163,4 +163,17 @@ public class DatabaseConnection {
             e.printStackTrace();
         }
     }
+
+        public static void resetHeroProgress(Hero hero) {
+        try (Connection conn = getConnection();
+            PreparedStatement pstmt = conn.prepareStatement("DELETE FROM inventory WHERE progress_id = ?")) {
+            pstmt.setInt(1, hero.getProgressId());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        Hero baseHero = new Hero(hero.getProgressId(), hero.getName(), hero.getType());
+        saveHeroProgress(baseHero);
+    }
 }
