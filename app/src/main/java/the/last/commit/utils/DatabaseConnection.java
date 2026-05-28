@@ -132,7 +132,7 @@ public class DatabaseConnection {
         String updateProgress = "UPDATE game_progress SET level = ?, exp = ?, gold = ?, upgrade_points = ?, highest_wave = ? WHERE progress_id = ?";
         String updateStats = "UPDATE hero_stats SET base_hp = ?, base_mana_energy = ?, base_defense = ?, base_atk = ?, base_skill = ?, base_ult = ? WHERE progress_id = ?";
 
-        try (Connection conn = getConnection()) {
+        try (Connection conn = connect()) {
             conn.setAutoCommit(false);
             try (PreparedStatement psProg = conn.prepareStatement(updateProgress);
                 PreparedStatement psStats = conn.prepareStatement(updateStats)) {
@@ -165,7 +165,7 @@ public class DatabaseConnection {
     }
 
         public static void resetHeroProgress(Hero hero) {
-        try (Connection conn = getConnection();
+        try (Connection conn = connect();
             PreparedStatement pstmt = conn.prepareStatement("DELETE FROM inventory WHERE progress_id = ?")) {
             pstmt.setInt(1, hero.getProgressId());
             pstmt.executeUpdate();
