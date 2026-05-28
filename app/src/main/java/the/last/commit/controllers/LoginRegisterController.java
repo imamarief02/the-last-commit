@@ -1,9 +1,13 @@
 package the.last.commit.controllers;
 
 import javafx.stage.Stage;
+import the.last.commit.models.Hero;
 import the.last.commit.models.User;
 import the.last.commit.models.UserDAO;
+import the.last.commit.utils.DatabaseConnection;
 import the.last.commit.utils.SessionManager;
+import the.last.commit.views.HeroSelection;
+import the.last.commit.views.LobbyScene;
 import the.last.commit.views.LoginRegister;
 
 
@@ -89,7 +93,12 @@ public class LoginRegisterController {
     }
 
     private void navigateToMainMenu() {
-        System.out.println("[Nav] Navigating to Main Menu for user: "
-            + SessionManager.getInstance().getCurrentUser().getUsername());
+        User user = SessionManager.getInstance().getCurrentUser();
+        Hero hero = DatabaseConnection.loadHeroForUser(user);
+        if (hero != null) {
+            stage.setScene(new LobbyScene(stage, hero).getScene());
+        } else {
+            stage.setScene(new HeroSelection(stage, user).createScene());
+        }
     }
 }
