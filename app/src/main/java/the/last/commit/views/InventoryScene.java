@@ -1,7 +1,7 @@
 package the.last.commit.views;
 
-import com.lastcommit.controllers.InventoryController;
-import com.lastcommit.models.Hero;
+import the.last.commit.controllers.InventoryController;
+import the.last.commit.models.Hero;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
