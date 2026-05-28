@@ -6,10 +6,12 @@ import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 import the.last.commit.models.Hero;
+import the.last.commit.models.User;
 
 public class DatabaseConnection {
 
@@ -79,6 +81,18 @@ public class DatabaseConnection {
             );
             """;
 
+        String inventoryTable = """
+            CREATE TABLE IF NOT EXISTS inventory(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                item_id TEXT NOT NULL,
+                item_type TEXT,
+                is_equipped INTEGER DEFAULT 0,
+                quantity INTEGER DEFAULT 1,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+            """;
+
         String itemsTable = """
             CREATE TABLE IF NOT EXISTS items(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,18 +100,6 @@ public class DatabaseConnection {
                 item_type TEXT,
                 effect_value INTEGER,
                 price INTEGER
-            );
-            """;
-
-        String inventoryTable = """
-            CREATE TABLE IF NOT EXISTS inventory(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                item_id INTEGER NOT NULL,
-                quantity INTEGER DEFAULT 1,
-                UNIQUE(user_id, item_id),
-                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
-                FOREIGN KEY(item_id) REFERENCES items(id) ON DELETE CASCADE
             );
             """;
 
@@ -128,45 +130,80 @@ public class DatabaseConnection {
         }
     }
 
-    public static void saveHeroProgress(Hero hero) {
-        String updateProgress = "UPDATE game_progress SET level = ?, exp = ?, gold = ?, upgrade_points = ?, highest_wave = ? WHERE progress_id = ?";
-        String updateStats = "UPDATE hero_stats SET base_hp = ?, base_mana_energy = ?, base_defense = ?, base_atk = ?, base_skill = ?, base_ult = ? WHERE progress_id = ?";
-
-        try (Connection conn = connect()) {
-            conn.setAutoCommit(false);
-            try (PreparedStatement psProg = conn.prepareStatement(updateProgress);
-                PreparedStatement psStats = conn.prepareStatement(updateStats)) {
-                
-                psProg.setInt(1, hero.getLevel());
-                psProg.setInt(2, hero.getExp());
-                psProg.setInt(3, hero.getGold());
-                psProg.setInt(4, hero.getUpgradePoints());
-                psProg.setInt(5, hero.getHighestWave());
-                psProg.setInt(6, hero.getProgressId());
-                psProg.executeUpdate();
-
-                psStats.setInt(1, hero.getMaxHp());
-                psStats.setInt(2, hero.getMaxResource());
-                psStats.setInt(3, hero.getDefense());
-                psStats.setInt(4, hero.getBasicAtk());
-                psStats.setInt(5, hero.getSkillAtk());
-                psStats.setInt(6, hero.getUltAtk());
-                psStats.setInt(7, hero.getProgressId());
-                psStats.executeUpdate();
-
-                conn.commit();
-            } catch (SQLException e) {
-                conn.rollback();
-                e.printStackTrace();
+    public static Hero loadHeroForUser(User user) {
+        String query = "SELECT * FROM game_progress WHERE user_id = ? AND hero_name IS NOT NULL";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, user.getId());
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    Hero hero = new Hero(0, rs.getString("hero_name"), deriveHeroType(rs.getString("hero_name")));
+                    hero.setGold(rs.getInt("gold"));
+                    hero.setUpgradePoints(rs.getInt("upgrade_points"));
+                    hero.setHighestWave(rs.getInt("current_wave") - 1);
+                    hero.setMaxHp(rs.getInt("hp"));
+                    hero.setMaxResource(rs.getInt("mana"));
+                    hero.setDefense(rs.getInt("basic_attack_damage") > 0 ? hero.getDefense() : hero.getDefense());
+                    hero.setBasicAtk(rs.getInt("basic_attack_damage"));
+                    hero.setSkillAtk(rs.getInt("basic_skill_damage"));
+                    hero.setUltAtk(rs.getInt("ultimate_damage"));
+                    hero.setCurrentHp(rs.getInt("hp"));
+                    hero.setCurrentResource(rs.getInt("mana"));
+                    hero.setProgressId(user.getId());
+                    return hero;
+                }
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static Hero createHeroSelection(User user, Hero hero) {
+        String sql = "INSERT INTO game_progress (user_id, hero_name, current_wave, gold, hp, mana, basic_attack_damage, basic_skill_damage, ultimate_damage, upgrade_points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, user.getId());
+            pstmt.setString(2, hero.getName());
+            pstmt.setInt(3, 1);
+            pstmt.setInt(4, hero.getGold());
+            pstmt.setInt(5, hero.getMaxHp());
+            pstmt.setInt(6, hero.getMaxResource());
+            pstmt.setInt(7, hero.getBasicAtk());
+            pstmt.setInt(8, hero.getSkillAtk());
+            pstmt.setInt(9, hero.getUltAtk());
+            pstmt.setInt(10, hero.getUpgradePoints());
+            pstmt.executeUpdate();
+            hero.setProgressId(user.getId());
+            return hero;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private static String deriveHeroType(String heroName) {
+        return heroName.toLowerCase().contains("katagiri") ? "katagiri" : "kyotaka";
+    }
+
+    public static void saveHeroProgress(Hero hero) {
+        String updateProgress = "UPDATE game_progress SET gold = ?, upgrade_points = ?, current_wave = ? WHERE user_id = ?";
+
+        try (Connection conn = connect();
+             PreparedStatement psProg = conn.prepareStatement(updateProgress)) {
+            psProg.setInt(1, hero.getGold());
+            psProg.setInt(2, hero.getUpgradePoints());
+            psProg.setInt(3, hero.getHighestWave() + 1);
+            psProg.setInt(4, hero.getProgressId());
+            psProg.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-        public static void resetHeroProgress(Hero hero) {
+    public static void resetHeroProgress(Hero hero) {
         try (Connection conn = connect();
-            PreparedStatement pstmt = conn.prepareStatement("DELETE FROM inventory WHERE progress_id = ?")) {
+             PreparedStatement pstmt = conn.prepareStatement("DELETE FROM inventory WHERE user_id = ?")) {
             pstmt.setInt(1, hero.getProgressId());
             pstmt.executeUpdate();
         } catch (SQLException e) {
