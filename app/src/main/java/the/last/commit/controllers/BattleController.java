@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Random;
 import the.last.commit.models.Enemy;
 import the.last.commit.models.Hero;
-import the.last.commit.views.AuthScene;
+import the.last.commit.views.LoginRegister;
 import the.last.commit.views.BattleScene;
 import the.last.commit.views.LobbyScene;
 import javafx.animation.KeyFrame;
@@ -208,7 +208,7 @@ public class BattleController {
         the.last.commit.utils.DatabaseConnection.resetHeroProgress(hero);
         Platform.runLater(() -> {
             view.showAlert("GAME OVER", "Statistik di-reset ke nilai dasar.");
-            stage.setScene(new AuthScene(stage).getScene());
+            stage.setScene(new LoginRegister(stage).createScene());
         });
     }
 
