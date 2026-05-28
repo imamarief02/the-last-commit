@@ -63,13 +63,13 @@ public class LoginRegister {
 
         VBox center = new VBox(20, header, tabPane);
         center.setAlignment(Pos.CENTER);
-        center.setMaxWidth(420);
+        center.setMaxWidth(450);
         center.setPadding(new Insets(20));
 
         root.setCenter(center);
         BorderPane.setAlignment(center, Pos.CENTER);
 
-        return new Scene(root, 500, 550);
+        return new Scene(root, 600, 550);
     }
 
 
