@@ -69,7 +69,7 @@ public class LobbyScene {
         logoutBtn.getStyleClass().addAll("button", "action-btn");
         logoutBtn.setMinWidth(250);
         logoutBtn.setStyle("-fx-border-color: #8B0000;");
-        logoutBtn.setOnAction(e -> stage.setScene(new AuthScene(stage).getScene()));
+        logoutBtn.setOnAction(e -> stage.setScene(new LoginRegister(stage).createScene()));
 
         menuPanel.getChildren().addAll(playBtn, inventoryBtn, shopBtn, upgradeBtn, logoutBtn);
 
