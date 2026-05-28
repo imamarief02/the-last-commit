@@ -32,13 +32,13 @@ public class ShopController {
             conn.setAutoCommit(false);
             try {
                 hero.setGold(hero.getGold() - item.getPrice());
-                String updateGold = "UPDATE game_progress SET gold = ? WHERE progress_id = ?";
+                String updateGold = "UPDATE game_progress SET gold = ? WHERE user_id = ?";
                 PreparedStatement psGold = conn.prepareStatement(updateGold);
                 psGold.setInt(1, hero.getGold());
                 psGold.setInt(2, hero.getProgressId());
                 psGold.executeUpdate();
 
-                String addInventory = "INSERT INTO inventory (progress_id, item_id, item_type, is_equipped, quantity) VALUES (?, ?, ?, 0, 1)";
+                String addInventory = "INSERT INTO inventory (user_id, item_id, item_type, is_equipped, quantity) VALUES (?, ?, ?, 0, 1)";
                 PreparedStatement psInv = conn.prepareStatement(addInventory);
                 psInv.setInt(1, hero.getProgressId());
                 psInv.setString(2, item.getItemId());
