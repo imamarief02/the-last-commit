@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import the.last.commit.models.Hero;
+import the.last.commit.models.HeroFactory;
 import the.last.commit.models.User;
 
 public class DatabaseConnection {
@@ -137,7 +138,7 @@ public class DatabaseConnection {
             pstmt.setInt(1, user.getId());
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    Hero hero = new Hero(0, rs.getString("hero_name"), deriveHeroType(rs.getString("hero_name")));
+                    Hero hero = HeroFactory.createHero(0, rs.getString("hero_name"), deriveHeroType(rs.getString("hero_name")));
                     hero.setGold(rs.getInt("gold"));
                     hero.setUpgradePoints(rs.getInt("upgrade_points"));
                     hero.setHighestWave(rs.getInt("current_wave") - 1);
@@ -210,7 +211,7 @@ public class DatabaseConnection {
             e.printStackTrace();
         }
 
-        Hero baseHero = new Hero(hero.getProgressId(), hero.getName(), hero.getType());
+        Hero baseHero = HeroFactory.createHero(hero.getProgressId(), hero.getName(), hero.getType());
         saveHeroProgress(baseHero);
     }
 }
