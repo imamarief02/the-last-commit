@@ -42,11 +42,12 @@ public class BattleScene implements BattleViewBridge {
     private Label timerLabel;
     private VBox targetingList;
     private TextArea logArea;
+    private VBox logContainer;
     private ImageView heroImageView;
     private ImageView enemyHordeView;
 
     private Enemy selectedTarget;
-    private HBox controlPanel;
+    private VBox controlPanel;
     private Button skillBtn, ultBtn;
 
     private StackPane rootStack;
@@ -96,90 +97,224 @@ public class BattleScene implements BattleViewBridge {
         Region spacer2 = new Region();
         HBox.setHgrow(spacer2, Priority.ALWAYS);
 
+        Button toggleLogBtn = new Button("LOG");
+        toggleLogBtn.getStyleClass().addAll("button", "rpg-button");
+
         Button menuBtn = new Button("MENU");
         menuBtn.getStyleClass().addAll("button", "rpg-button");
         menuBtn.setOnAction(e -> showBattleMenu());
 
-        topPane.getChildren().addAll(waveTitle, spacer1, timerLabel, spacer2, menuBtn);
+        topPane.getChildren().addAll(waveTitle, spacer1, timerLabel, spacer2, toggleLogBtn, menuBtn);
         battleRoot.setTop(topPane);
 
-        VBox heroPanel = new VBox(15);
-        heroPanel.setPadding(new Insets(0, 20, 0, 20));
-        heroPanel.setAlignment(Pos.TOP_CENTER);
-        heroPanel.setMinWidth(250);
+        StackPane arenaPane = new StackPane();
+        arenaPane.setPrefHeight(410);
+
+        ImageView backgroundView = new ImageView();
+        Image bgImage = getWaveBackground(wave);
+        if (bgImage != null) {
+            backgroundView.setImage(bgImage);
+        }
+        backgroundView.setFitWidth(1024);
+        backgroundView.setFitHeight(410);
+        backgroundView.setPreserveRatio(false);
+
+        HBox combatantsPane = new HBox(80);
+        combatantsPane.setAlignment(Pos.CENTER);
+        combatantsPane.setPadding(new Insets(10, 40, 10, 40));
+
+        VBox heroDisplay = new VBox(8);
+        heroDisplay.setAlignment(Pos.CENTER);
+        heroDisplay.setPadding(new Insets(8));
+        heroDisplay.setStyle(
+            "-fx-background-color: rgba(15, 23, 42, 0.7);" +
+            "-fx-background-radius: 12px;" +
+            "-fx-border-color: rgba(0, 255, 255, 0.35);" +
+            "-fx-border-radius: 12px;" +
+            "-fx-border-width: 1.5px;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(0,255,255,0.25), 10, 0, 0, 0);"
+        );
+        heroDisplay.setMinWidth(220);
+        heroDisplay.setMaxWidth(220);
 
         heroImageView = new ImageView(controller.getHeroIdle());
-        heroImageView.setFitWidth(150);
-        heroImageView.setFitHeight(150);
+        heroImageView.setFitWidth(130);
+        heroImageView.setFitHeight(130);
         heroImageView.setPreserveRatio(true);
 
         Label hName = new Label(hero.getName().toUpperCase());
         hName.getStyleClass().add("title-label");
-        hName.setStyle("-fx-font-size: 18px;");
+        hName.setStyle("-fx-font-size: 14px;");
 
         hpBar = new ProgressBar(1.0);
         hpBar.getStyleClass().add("hp-bar");
-        hpBar.setPrefWidth(200);
+        hpBar.setPrefWidth(180);
         hpLabel = new Label();
         hpLabel.getStyleClass().add("stat-label");
+        hpLabel.setStyle("-fx-font-size: 11px;");
 
         resBar = new ProgressBar(1.0);
         resBar.getStyleClass().add(hero.getResourceName().equalsIgnoreCase("Mana") ? "mana-bar" : "energy-bar");
-        resBar.setPrefWidth(200);
+        resBar.setPrefWidth(180);
         resLabel = new Label();
         resLabel.getStyleClass().add("stat-label");
+        resLabel.setStyle("-fx-font-size: 11px;");
 
-        heroPanel.getChildren().addAll(heroImageView, hName, new Label("HP"){{getStyleClass().add("subtitle-label");}}, hpBar, hpLabel,
-        new Label(hero.getResourceName().toUpperCase()){{getStyleClass().add("subtitle-label");}}, resBar, resLabel);
-        battleRoot.setLeft(heroPanel);
+        heroDisplay.getChildren().addAll(
+            heroImageView, 
+            hName, 
+            new Label("HP"){{getStyleClass().add("subtitle-label"); styleProperty().set("-fx-font-size: 10px;");}}, 
+            hpBar, hpLabel,
+            new Label(hero.getResourceName().toUpperCase()){{getStyleClass().add("subtitle-label"); styleProperty().set("-fx-font-size: 10px;");}}, 
+            resBar, resLabel
+        );
 
-        VBox enemyPanel = new VBox(15);
-        enemyPanel.setPadding(new Insets(0, 20, 0, 20));
-        enemyPanel.setAlignment(Pos.TOP_CENTER);
-        enemyPanel.setMinWidth(250);
+        Region spacerComb = new Region();
+        HBox.setHgrow(spacerComb, Priority.ALWAYS);
+
+        VBox enemyDisplay = new VBox(8);
+        enemyDisplay.setAlignment(Pos.CENTER);
+        enemyDisplay.setPadding(new Insets(8));
+        enemyDisplay.setStyle(
+            "-fx-background-color: rgba(15, 23, 42, 0.7);" +
+            "-fx-background-radius: 12px;" +
+            "-fx-border-color: rgba(239, 68, 68, 0.35);" +
+            "-fx-border-radius: 12px;" +
+            "-fx-border-width: 1.5px;" +
+            "-fx-effect: dropshadow(three-pass-box, rgba(239,68,68,0.25), 10, 0, 0, 0);"
+        );
+        enemyDisplay.setMinWidth(220);
+        enemyDisplay.setMaxWidth(220);
 
         enemyHordeView = new ImageView();
         if (wave == 5) enemyHordeView.setImage(controller.getBossIdle());
         else enemyHordeView.setImage(controller.getEnemyIdle());
-        enemyHordeView.setFitWidth(150);
-        enemyHordeView.setFitHeight(150);
+        enemyHordeView.setFitWidth(130);
+        enemyHordeView.setFitHeight(130);
         enemyHordeView.setPreserveRatio(true);
 
-        targetingList = new VBox(8);
+        targetingList = new VBox(5);
         targetingList.setAlignment(Pos.TOP_CENTER);
         ScrollPane sp = new ScrollPane(targetingList);
         sp.setFitToWidth(true);
-        sp.setPrefHeight(200);
+        sp.setPrefHeight(100);
         sp.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
 
-        enemyPanel.getChildren().addAll(enemyHordeView, new Label("TARGETS"){{getStyleClass().add("subtitle-label");}}, sp);
-        battleRoot.setRight(enemyPanel);
+        enemyDisplay.getChildren().addAll(
+            enemyHordeView, 
+            new Label("TARGETS"){{getStyleClass().add("subtitle-label"); styleProperty().set("-fx-font-size: 11px; -fx-text-fill: #ef4444;");}}, 
+            sp
+        );
+
+        combatantsPane.getChildren().addAll(heroDisplay, spacerComb, enemyDisplay);
+        arenaPane.getChildren().addAll(backgroundView, combatantsPane);
+        battleRoot.setCenter(arenaPane);
 
         logArea = new TextArea();
         logArea.setEditable(false);
         logArea.getStyleClass().add("battle-log");
-        VBox logContainer = new VBox(logArea);
-        logContainer.setPadding(new Insets(10, 10, 10, 10));
+        logArea.setPrefHeight(75);
+        logArea.setMaxHeight(75);
+        logContainer = new VBox(logArea);
+        logContainer.setPadding(new Insets(5, 10, 5, 10));
         VBox.setVgrow(logArea, Priority.ALWAYS);
-        battleRoot.setCenter(logContainer);
+        logContainer.setVisible(true);
 
-        controlPanel = new HBox(20);
+        toggleLogBtn.setOnAction(e -> {
+            logContainer.setVisible(!logContainer.isVisible());
+            if (logContainer.isVisible()) {
+                toggleLogBtn.setStyle("-fx-border-color: #00FFFF; -fx-text-fill: #00FFFF; -fx-effect: dropshadow(three-pass-box, rgba(0,255,255,0.4), 8, 0, 0, 0);");
+            } else {
+                toggleLogBtn.setStyle("");
+            }
+        });
+
+        controlPanel = new VBox(12);
         controlPanel.setAlignment(Pos.CENTER);
-        controlPanel.setPadding(new Insets(15));
+        controlPanel.setPadding(new Insets(10, 20, 10, 20));
         controlPanel.getStyleClass().add("rpg-panel");
+
+        HBox buttonContainer = new HBox(20);
+        buttonContainer.setAlignment(Pos.CENTER);
+
+        HBox combatGroup = new HBox(12);
+        combatGroup.setAlignment(Pos.CENTER_LEFT);
 
         Button basicBtn = createBtn(hero.getBasicAtkName());
         skillBtn = createBtn(hero.getSkillAtkName());
         ultBtn = createBtn(hero.getUltAtkName());
+        combatGroup.getChildren().addAll(basicBtn, skillBtn, ultBtn);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox itemGroup = new HBox(12);
+        itemGroup.setAlignment(Pos.CENTER_RIGHT);
+
         Button potBtn = createBtn("Potion");
+        potBtn.setStyle("-fx-border-color: #F59E0B; -fx-text-fill: #F59E0B; -fx-effect: dropshadow(three-pass-box, rgba(245,158,11,0.25), 5, 0, 0, 0);");
+        itemGroup.getChildren().add(potBtn);
+
+        buttonContainer.getChildren().addAll(combatGroup, spacer, itemGroup);
+
+        Label descLabel = new Label("Arahkan kursor ke tombol aksi untuk melihat deskripsi detail efek.");
+        descLabel.setStyle("-fx-text-fill: #94A3B8; -fx-font-family: 'Consolas', monospace; -fx-font-size: 12px; -fx-font-style: italic; -fx-text-alignment: center;");
+
+        controlPanel.getChildren().addAll(buttonContainer, descLabel);
+
+        VBox bottomVBox = new VBox(8);
+        bottomVBox.setPadding(new Insets(0, 10, 10, 10));
+        bottomVBox.getChildren().addAll(controlPanel, logContainer);
+        battleRoot.setBottom(bottomVBox);
 
         basicBtn.setOnAction(e -> controller.heroAttack("BASIC", selectedTarget, heroImageView, enemyHordeView));
         skillBtn.setOnAction(e -> controller.heroAttack("SKILL", selectedTarget, heroImageView, enemyHordeView));
         ultBtn.setOnAction(e -> controller.heroAttack("ULT", selectedTarget, heroImageView, enemyHordeView));
         potBtn.setOnAction(e -> showPotionsDialog());
 
-        controlPanel.getChildren().addAll(basicBtn, skillBtn, ultBtn, potBtn);
-        battleRoot.setBottom(controlPanel);
+        basicBtn.setOnMouseEntered(e -> {
+            int basicDmg = hero.getTotalBasicAtk();
+            int regen = (int)(hero.getTotalMaxResource() * 0.08);
+            descLabel.setText(hero.getBasicAtkName() + ": Menyerang 1 target menghasilkan " + basicDmg + " DMG. Mengembalikan +" + regen + " " + hero.getResourceName() + " saat kena hit.");
+            descLabel.setStyle("-fx-text-fill: #00FFFF; -fx-font-family: 'Consolas', monospace; -fx-font-size: 12px; -fx-font-style: italic; -fx-text-alignment: center;");
+        });
+        basicBtn.setOnMouseExited(e -> {
+            descLabel.setText("Arahkan kursor ke tombol aksi untuk melihat deskripsi detail efek.");
+            descLabel.setStyle("-fx-text-fill: #94A3B8; -fx-font-family: 'Consolas', monospace; -fx-font-size: 12px; -fx-font-style: italic; -fx-text-alignment: center;");
+        });
+
+        skillBtn.setOnMouseEntered(e -> {
+            int skillDmg = hero.getTotalSkillAtk();
+            int cost = hero.getSkillCost();
+            int spreadCount = hero.getType().equalsIgnoreCase("katagiri") ? 4 : 5;
+            descLabel.setText(hero.getSkillAtkName() + ": Menyerang target sebesar " + skillDmg + " DMG, menyebar ke " + spreadCount + " musuh di sekitarnya. Biaya: " + cost + " " + hero.getResourceName() + ".");
+            descLabel.setStyle("-fx-text-fill: #00FFFF; -fx-font-family: 'Consolas', monospace; -fx-font-size: 12px; -fx-font-style: italic; -fx-text-alignment: center;");
+        });
+        skillBtn.setOnMouseExited(e -> {
+            descLabel.setText("Arahkan kursor ke tombol aksi untuk melihat deskripsi detail efek.");
+            descLabel.setStyle("-fx-text-fill: #94A3B8; -fx-font-family: 'Consolas', monospace; -fx-font-size: 12px; -fx-font-style: italic; -fx-text-alignment: center;");
+        });
+
+        ultBtn.setOnMouseEntered(e -> {
+            int ultDmg = hero.getTotalUltAtk();
+            int cost = hero.getUltCost();
+            int spreadCount = hero.getType().equalsIgnoreCase("katagiri") ? 8 : 12;
+            descLabel.setText(hero.getUltAtkName() + ": Ledakan dahsyat menghasilkan " + ultDmg + " DMG, menyebar luas hingga " + spreadCount + " musuh. Biaya: " + cost + " " + hero.getResourceName() + ".");
+            descLabel.setStyle("-fx-text-fill: #00FFFF; -fx-font-family: 'Consolas', monospace; -fx-font-size: 12px; -fx-font-style: italic; -fx-text-alignment: center;");
+        });
+        ultBtn.setOnMouseExited(e -> {
+            descLabel.setText("Arahkan kursor ke tombol aksi untuk melihat deskripsi detail efek.");
+            descLabel.setStyle("-fx-text-fill: #94A3B8; -fx-font-family: 'Consolas', monospace; -fx-font-size: 12px; -fx-font-style: italic; -fx-text-alignment: center;");
+        });
+
+        potBtn.setOnMouseEntered(e -> {
+            descLabel.setText("Potion: Membuka kantong inventori untuk meminum Ramuan Pemulihan HP, Pemulihan " + hero.getResourceName() + ", atau Ramuan Anti-Block.");
+            descLabel.setStyle("-fx-text-fill: #F59E0B; -fx-font-family: 'Consolas', monospace; -fx-font-size: 12px; -fx-font-style: italic; -fx-text-alignment: center;");
+        });
+        potBtn.setOnMouseExited(e -> {
+            descLabel.setText("Arahkan kursor ke tombol aksi untuk melihat deskripsi detail efek.");
+            descLabel.setStyle("-fx-text-fill: #94A3B8; -fx-font-family: 'Consolas', monospace; -fx-font-size: 12px; -fx-font-style: italic; -fx-text-alignment: center;");
+        });
 
         controller.autoSelectFirstTarget();
         updateUI();
@@ -572,6 +707,24 @@ public class BattleScene implements BattleViewBridge {
         } else {
             timerLabel.setText("TIMER: -");
         }
+    }
+
+    private Image getWaveBackground(int wave) {
+        String filename = "arena-wave-one.png";
+        if (wave == 2) {
+            filename = "arena-wave-two.png";
+        } else if (wave == 3) {
+            filename = "arena-wave-tree.png";
+        } else if (wave == 4) {
+            filename = "arena-wave-four.png";
+        } else if (wave == 5) {
+            filename = "arena-wave-five.png";
+        }
+        var stream = getClass().getResourceAsStream("/images/" + filename);
+        if (stream != null) {
+            return new Image(stream);
+        }
+        return null;
     }
 
     public Enemy getSelectedTarget() { return selectedTarget; }
