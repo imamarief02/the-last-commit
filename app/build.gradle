@@ -48,5 +48,5 @@ java {
 
 application {
     // Define the main class for the application.
-    mainClass = 'the.last.commit.App'
+    mainClass = 'TheLastCommit.App'
 }
